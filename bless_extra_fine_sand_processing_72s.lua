@@ -7,10 +7,9 @@ local player = API.GetLocalPlayerName()
 
 local SAND_ID = 48674
 
--- timeouts (seconds)
-local START_PROCESS_TIMEOUT = 6      -- time to detect processing start after click
-local PROCESS_TIMEOUT = 85           -- ~72s expected + margin
-local EXTRA_PROCESS_TIMEOUT = 120    -- extra wait if still processing after PROCESS_TIMEOUT
+local START_PROCESS_TIMEOUT = 6
+local PROCESS_TIMEOUT = 85
+local EXTRA_PROCESS_TIMEOUT = 120
 
 local LOOP_COOLDOWN_MS = 250
 local ACTION_COOLDOWN_MS = 600
@@ -43,21 +42,17 @@ local function waitWhileProcessing(timeoutSec)
 end
 
 local function blessOnce()
-    -- Click the sand
     API.DoAction_Inventory1(SAND_ID, 0, 1, API.OFF_ACT_GeneralInterface_route)
     sleep(150)
 
-    -- Wait for processing to start
     if not waitUntil(API.isProcessing, START_PROCESS_TIMEOUT) then
         return false
     end
 
-    -- Wait for processing to end (normal window)
     if waitWhileProcessing(PROCESS_TIMEOUT) then
         return true
     end
 
-    -- If still processing, keep waiting more (prevents re-click spam)
     if API.isProcessing() then
         return waitWhileProcessing(EXTRA_PROCESS_TIMEOUT)
     end

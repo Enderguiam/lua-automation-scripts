@@ -3,17 +3,9 @@
 
 local API = require("api")
 
--- ============================================================
--- CONFIGURAÇÃO
--- ============================================================
-
-local IDLE_LIMIT_MINUTES = 14   -- tempo máximo (em minutos) antes do kick (jogo usa 15-20min)
-local MIN_INTERVAL        = 720  -- intervalo mínimo entre ações backup (segundos)
-local MAX_INTERVAL        = 840  -- intervalo máximo entre ações backup (segundos)
-
--- ============================================================
--- TEMA (verde escuro — padrão dos scripts do repositório)
--- ============================================================
+local IDLE_LIMIT_MINUTES = 14
+local MIN_INTERVAL        = 720
+local MAX_INTERVAL        = 840
 
 local C = {
     dark   = { 0.04, 0.06, 0.04 },
@@ -26,10 +18,6 @@ local C = {
     blue   = { 0.30, 0.70, 1.00 },
 }
 
--- ============================================================
--- ESTADO
--- ============================================================
-
 local GUI = {
     started   = false,
     cancelled = false,
@@ -39,15 +27,11 @@ local GUI = {
 
 local State = {
     status       = "Aguardando início...",
-    nextAction   = 0,   -- timestamp do próximo PIdle2
+    nextAction   = 0,
     actionCount  = 0,
     lastHP       = 0,
     interval     = MIN_INTERVAL,
 }
-
--- ============================================================
--- HELPERS
--- ============================================================
 
 local function randomInterval()
     return math.random(MIN_INTERVAL, MAX_INTERVAL)
@@ -73,15 +57,9 @@ local function getHP()
     return hp, 0, 0
 end
 
--- ============================================================
--- LÓGICA ANTI-AFK
--- ============================================================
-
 local function doAntiAfk()
-    -- Método principal: nativo da engine
     API.SetMaxIdleTime(IDLE_LIMIT_MINUTES)
 
-    -- Backup a cada intervalo aleatório: simula micro-ação
     local now = os.time()
     if os.difftime(now, State.nextAction) >= 0 then
         API.PIdle2()
@@ -94,10 +72,6 @@ local function doAntiAfk()
                 State.actionCount, State.interval))
     end
 end
-
--- ============================================================
--- GUI: SETUP (tela inicial)
--- ============================================================
 
 local function pushTheme()
     ImGui.PushStyleColor(ImGuiCol.WindowBg,       C.dark[1],       C.dark[2],       C.dark[3],       0.97)
@@ -127,7 +101,6 @@ local function drawSetupGUI()
 
     local visible = ImGui.Begin("Anti-AFK — Configuração###AntiAfkSetup", 0)
     if visible then
-        -- Título
         ImGui.PushStyleColor(ImGuiCol.Text, C.glow[1], C.glow[2], C.glow[3], 1.0)
         ImGui.Text("  Anti-AFK — Prevenção de DC por Inatividade")
         ImGui.PopStyleColor(1)
@@ -136,7 +109,6 @@ local function drawSetupGUI()
         ImGui.Separator()
         ImGui.Spacing()
 
-        -- Info
         ImGui.PushStyleColor(ImGuiCol.Text, 0.75, 0.85, 0.70, 1.0)
         ImGui.TextWrapped("Método Principal:")
         ImGui.PopStyleColor(1)
@@ -157,7 +129,6 @@ local function drawSetupGUI()
         ImGui.Separator()
         ImGui.Spacing()
 
-        -- Botão Iniciar
         ImGui.PushStyleColor(ImGuiCol.Button,        C.light[1],    C.light[2],    C.light[3],    0.9)
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, C.bright[1],   C.bright[2],   C.bright[3],   1.0)
         ImGui.PushStyleColor(ImGuiCol.ButtonActive,  C.glow[1]*0.8, C.glow[2]*0.8, C.glow[3]*0.8, 1.0)
@@ -169,7 +140,6 @@ local function drawSetupGUI()
 
         ImGui.Spacing()
 
-        -- Botão Cancelar
         ImGui.PushStyleColor(ImGuiCol.Button,        0.25, 0.08, 0.08, 0.5)
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.45, 0.12, 0.12, 0.8)
         ImGui.PushStyleColor(ImGuiCol.ButtonActive,  0.65, 0.15, 0.15, 1.0)
@@ -184,23 +154,16 @@ local function drawSetupGUI()
     ImGui.End()
 end
 
--- ============================================================
--- GUI: MONITOR (loop principal)
--- ============================================================
-
 local function drawMonitorGUI()
     ImGui.SetNextWindowSize(360, 0, ImGuiCond.Always)
     ImGui.SetNextWindowPos(100, 100, ImGuiCond.FirstUseEver)
     pushTheme()
 
-    -- Título dinâmico com estado
     local stateTag = GUI.paused and "  ⏸ PAUSADO" or "  ▶ ATIVO"
     local title    = "Anti-AFK — " .. API.ScriptRuntimeString() .. stateTag .. "###AntiAfkMon"
     local visible  = ImGui.Begin(title, 0)
 
     if visible then
-
-        -- Status principal
         if GUI.paused then
             ImGui.PushStyleColor(ImGuiCol.Text, C.gold[1], C.gold[2], C.gold[3], 1.0)
             ImGui.TextWrapped("⏸  Script pausado. Clique em Retomar.")
@@ -214,13 +177,11 @@ local function drawMonitorGUI()
         ImGui.Separator()
         ImGui.Spacing()
 
-        -- ---- HP ----
         local hp, hpMax, hpPct = getHP()
         ImGui.PushStyleColor(ImGuiCol.Text, 0.75, 0.85, 0.70, 1.0)
         ImGui.Text("HP:")
         ImGui.PopStyleColor(1)
         ImGui.SameLine()
-        -- Cor do HP
         local hr, hg, hb = C.glow[1], C.glow[2], C.glow[3]
         if hpPct < 50 then hr, hg, hb = C.gold[1], C.gold[2], C.gold[3] end
         if hpPct < 25 then hr, hg, hb = C.red[1],  C.red[2],  C.red[3]  end
@@ -230,7 +191,6 @@ local function drawMonitorGUI()
 
         ImGui.Spacing()
 
-        -- ---- Ações realizadas ----
         ImGui.PushStyleColor(ImGuiCol.Text, 0.75, 0.85, 0.70, 1.0)
         ImGui.Text("Ações backup:")
         ImGui.PopStyleColor(1)
@@ -239,7 +199,6 @@ local function drawMonitorGUI()
         ImGui.Text(tostring(State.actionCount))
         ImGui.PopStyleColor(1)
 
-        -- ---- Próxima ação ----
         local remaining = math.max(0, State.nextAction - os.time())
         ImGui.PushStyleColor(ImGuiCol.Text, 0.75, 0.85, 0.70, 1.0)
         ImGui.Text("Próxima backup em:")
@@ -251,7 +210,6 @@ local function drawMonitorGUI()
 
         ImGui.Spacing()
 
-        -- ---- Último status ----
         ImGui.PushStyleColor(ImGuiCol.Text, 0.60, 0.70, 0.60, 1.0)
         ImGui.TextWrapped("» " .. State.status)
         ImGui.PopStyleColor(1)
@@ -260,7 +218,6 @@ local function drawMonitorGUI()
         ImGui.Separator()
         ImGui.Spacing()
 
-        -- ---- Botão Pausar / Retomar ----
         if GUI.paused then
             ImGui.PushStyleColor(ImGuiCol.Button,        C.light[1],    C.light[2],    C.light[3],    0.9)
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, C.bright[1],   C.bright[2],   C.bright[3],   1.0)
@@ -268,7 +225,6 @@ local function drawMonitorGUI()
             if ImGui.Button("▶  Retomar##resume", -1, 30) then
                 GUI.paused   = false
                 State.status = "Retomado."
-                -- reset timer
                 State.interval   = randomInterval()
                 State.nextAction = os.time() + State.interval
             end
@@ -286,7 +242,6 @@ local function drawMonitorGUI()
 
         ImGui.Spacing()
 
-        -- ---- Botão Parar ----
         ImGui.PushStyleColor(ImGuiCol.Button,        0.28, 0.06, 0.06, 0.6)
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.48, 0.10, 0.10, 0.9)
         ImGui.PushStyleColor(ImGuiCol.ButtonActive,  0.68, 0.14, 0.14, 1.0)
@@ -299,10 +254,6 @@ local function drawMonitorGUI()
     popTheme()
     ImGui.End()
 end
-
--- ============================================================
--- STARTUP — aguarda "Iniciar"
--- ============================================================
 
 local function waitForStart()
     GUI.open      = true
@@ -324,10 +275,6 @@ local function waitForStart()
     return true
 end
 
--- ============================================================
--- MAIN
--- ============================================================
-
 API.Write_LoopyLoop(true)
 
 if not waitForStart() then
@@ -335,7 +282,6 @@ if not waitForStart() then
     return
 end
 
--- Configuração inicial
 API.SetMaxIdleTime(IDLE_LIMIT_MINUTES)
 State.interval   = randomInterval()
 State.nextAction = os.time() + State.interval
